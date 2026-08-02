@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.19)
 project(PointCloudProcessor LANGUAGES CXX)
 
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 find_package(Qt6 6.5 REQUIRED COMPONENTS Core Widgets OpenGLWidgets)
 find_package(Open3D REQUIRED)
 find_package(Eigen3 REQUIRED)
@@ -29,8 +32,6 @@ qt_add_executable(PointCloudProcessor
 target_include_directories(PointCloudProcessor PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
-target_compile_features(PointCloudProcessor PRIVATE cxx_std_17)
-
 if(MSVC)
     target_compile_options(PointCloudProcessor PRIVATE /bigobj)
     target_compile_definitions(PointCloudProcessor PRIVATE NOMINMAX)
@@ -46,6 +47,16 @@ target_link_libraries(PointCloudProcessor
         Open3D::Open3D
         Eigen3::Eigen
 )
+
+# ---- Post-build: copy Open3D runtime DLL to output dir ----
+if(WIN32)
+    add_custom_command(TARGET PointCloudProcessor POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "D:/Workpiece/Open3D/bin/Open3D.dll"
+            "$<TARGET_FILE_DIR:PointCloudProcessor>"
+        COMMENT "Copying Open3D.dll..."
+    )
+endif()
 
 install(TARGETS PointCloudProcessor
     BUNDLE  DESTINATION .

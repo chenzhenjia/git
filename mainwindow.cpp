@@ -2,12 +2,12 @@
 #include "ui_mainwindow.h"
 
 #include <cmath>
-#include <filesystem>
-#include <fstream>
 
 #include <QCloseEvent>
 #include <QDebug>
+#include <QFile>
 #include <QFileDialog>
+#include <QFileInfo>
 #include <QMessageBox>
 #include <QStyle>
 #include <QThread>
@@ -19,23 +19,12 @@
 #include "ui/PointCloudViewerWidget.h"
 #include "workers/LoadWorker.h"
 
-// ---------------------------------------------------------------------------
-//  helper: peek the first N bytes of a file to detect PLY format
-// ---------------------------------------------------------------------------
-static std::string peekFormat(const QString &path, int nBytes = 120) {
-    std::ifstream f(path.toStdString(), std::ios::binary);
-    if (!f) return {};
-    std::string buf(nBytes, '\0');
-    f.read(buf.data(), nBytes);
-    return buf;
+static QByteArray peekFileHeader(const QString &path, int nBytes = 1024) {
+    QFile f(path);
+    if (!f.open(QIODevice::ReadOnly)) return {};
+    return f.read(nBytes);
 }
 
-static bool isBinaryPly(const std::string &peek) {
-    return peek.find("binary_little_endian") != std::string::npos ||
-           peek.find("binary_big_endian")    != std::string::npos;
-}
-
-// ===================================================================
 MainWindow::MainWindow(QWidget *parent):QMainWindow(parent),ui(new Ui::MainWindow){
     ui->setupUi(this);m_viewer=ui->viewerWidget;
     ui->sidePanel->setStyleSheet(
@@ -75,7 +64,6 @@ void MainWindow::initWorker(){
     connect(m_loadWorker,&LoadWorker::statsReady,this,&MainWindow::onStatsReady);
     connect(m_loadWorker,&LoadWorker::progressUpdated,this,[this](int p){if(m_progressDialog)m_progressDialog->setValue(p);});
     connect(m_loadWorker,&LoadWorker::loadFailed,this,&MainWindow::onLoadFailed);
-    // mmap path
     connect(m_loadWorker,&LoadWorker::mmapReady,this,[this](auto reader,auto octree,auto stats){
         if(m_progressDialog){m_progressDialog->close();m_progressDialog->deleteLater();m_progressDialog=nullptr;}
         m_mmapReader=reader;m_octree=octree;m_useMmap=true;m_stats=stats;
@@ -84,7 +72,6 @@ void MainWindow::initWorker(){
         m_viewer->setMmapSource(reader,octree,stats);
         applySse(0.5f);
         statusBar()->showMessage(QString("Mmap mode: %L1 points, %2 MB").arg(stats.total_points).arg(stats.file_size_bytes/(1024*1024)));
-        qDebug()<<"[MainWindow] mmapReady: total="<<stats.total_points<<"nodes="<<octree->nodeCount();
     });
     connect(m_loadThread,&QThread::finished,m_loadWorker,&QObject::deleteLater);
     m_loadThread->start();
@@ -103,21 +90,27 @@ void MainWindow::startLoad(const QString &path){
 
     LoadConfig cfg;cfg.preview_target_points=50000;cfg.auto_preview_threshold=500000;
 
-    // ---- 格式检测: ASCII 文件即使很大也走 Open3D 路径 ----
-    std::string peek=peekFormat(path);
+    // Format detection using QFile (supports Windows Chinese paths)
+    QByteArray headerBytes=peekFileHeader(path);
+    std::string peek=headerBytes.toStdString();
     bool isBinary=(peek.find("binary_little_endian")!=std::string::npos||
                    peek.find("binary_big_endian")!=std::string::npos);
-    if(isBinary){
-        std::error_code ec;auto fsz=std::filesystem::file_size(path.toStdString(),ec);
-        if(!ec&&fsz>cfg.mmap_threshold_bytes){
-            qDebug()<<"[MainWindow] binary large file, routing to mmap:"<<fsz/1024/1024<<"MB";
-            QMetaObject::invokeMethod(m_loadWorker,[this,path,cfg](){m_loadWorker->startMmapLoad(path,cfg);},Qt::QueuedConnection);
-            return;
-        }
-    }else{
-        qDebug()<<"[MainWindow] ASCII file detected, routing to Open3D";
+    bool isAscii=(peek.find("format ascii")!=std::string::npos);
+    if(!isBinary&&!isAscii){
+        qWarning()<<"[MainWindow] Cannot determine PLY format, defaulting to Open3D";
     }
-    // 小文件 / ASCII → Open3D 路径
+
+    // File size via QFileInfo (safe for Chinese paths)
+    QFileInfo fi(path);
+    if(!fi.exists()){onLoadFailed("File not found: "+path);return;}
+    qint64 fsz=fi.size();
+
+    if(isBinary&&fsz>cfg.mmap_threshold_bytes){
+        qDebug()<<"[MainWindow] binary large file, routing to mmap:"<<fsz/1024/1024<<"MB";
+        QMetaObject::invokeMethod(m_loadWorker,[this,path,cfg](){m_loadWorker->startMmapLoad(path,cfg);},Qt::QueuedConnection);
+        return;
+    }
+    qDebug()<<"[MainWindow] Routing to Open3D path";
     QMetaObject::invokeMethod(m_loadWorker,[this,path,cfg](){m_loadWorker->startLoad(path,cfg);},Qt::QueuedConnection);
 }
 
