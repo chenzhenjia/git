@@ -50,11 +50,18 @@ target_link_libraries(PointCloudProcessor
 
 # ---- Post-build: copy Open3D runtime DLL to output dir ----
 if(WIN32)
+    # Derive Open3D bin dir from Open3D_DIR (typically .../Open3D/lib/cmake/Open3D)
+    get_filename_component(OPEN3D_CMAKE_DIR "${Open3D_DIR}" ABSOLUTE)
+    get_filename_component(OPEN3D_ROOT_DIR "${OPEN3D_CMAKE_DIR}/.." ABSOLUTE)
+    set(OPEN3D_BIN_DIR "${OPEN3D_ROOT_DIR}/bin")
+    message(STATUS "Open3D DLLs will be copied from: ${OPEN3D_BIN_DIR}")
+
+    file(GLOB OPEN3D_DLLS "${OPEN3D_BIN_DIR}/*.dll")
     add_custom_command(TARGET PointCloudProcessor POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            "D:/Workpiece/Open3D/bin/Open3D.dll"
+            ${OPEN3D_DLLS}
             "$<TARGET_FILE_DIR:PointCloudProcessor>"
-        COMMENT "Copying Open3D.dll..."
+        COMMENT "Copying Open3D runtime DLLs..."
     )
 endif()
 
