@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect><x>0</x><y>0</y><width>1280</width><height>800</height></rect>
+  </property>
+  <property name="windowTitle"><string>PointCloudProcessor</string></property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QHBoxLayout" name="mainLayout">
+    <property name="spacing"><number>0</number></property>
+    <property name="leftMargin"><number>0</number></property>
+    <property name="topMargin"><number>0</number></property>
+    <property name="rightMargin"><number>0</number></property>
+    <property name="bottomMargin"><number>0</number></property>
+    <item>
+     <widget class="PointCloudViewerWidget" name="viewerWidget">
+      <property name="sizePolicy"><sizepolicy hsizetype="Expanding" vsizetype="Expanding"><horstretch>1</horstretch><verstretch>1</verstretch></sizepolicy></property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QWidget" name="sidePanel" native="true">
+      <property name="minimumSize"><size><width>250</width><height>0</height></size></property>
+      <property name="maximumSize"><size><width>340</width><height>16777215</height></size></property>
+      <layout class="QVBoxLayout" name="sidePanelLayout">
+       <property name="spacing"><number>10</number></property>
+       <property name="leftMargin"><number>14</number></property>
+       <property name="topMargin"><number>16</number></property>
+       <property name="rightMargin"><number>14</number></property>
+       <property name="bottomMargin"><number>16</number></property>
+       <item><widget class="QLabel" name="panelTitle"><property name="text"><string>DATA</string></property></widget></item>
+       <item><widget class="QPushButton" name="loadPlyButton">
+        <property name="text"><string>Load PLY</string></property>
+        <property name="toolTip"><string>Load a point cloud file</string></property>
+        <property name="minimumSize"><size><width>0</width><height>36</height></size></property>
+        <property name="cursor"><cursorShape>PointingHandCursor</cursorShape></property>
+       </widget></item>
+       <item><widget class="QFrame" name="separator1"><property name="frameShape"><enum>QFrame::HLine</enum></property><property name="frameShadow"><enum>QFrame::Sunken</enum></property></widget></item>
+       <item><widget class="QLabel" name="displaySection"><property name="text"><string>DISPLAY</string></property></widget></item>
+       <item><widget class="QLabel" name="pointCountLabel"><property name="text"><string>Points: 0 / 0</string></property></widget></item>
+       <item>
+        <layout class="QHBoxLayout" name="sliderRow">
+         <item><widget class="QLabel" name="sliderMinLabel"><property name="text"><string>1K</string></property></widget></item>
+         <item><widget class="QSlider" name="pointSlider">
+          <property name="minimum"><number>0</number></property>
+          <property name="maximum"><number>1000</number></property>
+          <property name="value"><number>500</number></property>
+          <property name="orientation"><enum>Qt::Horizontal</enum></property>
+          <property name="tickPosition"><enum>QSlider::NoTicks</enum></property>
+         </widget></item>
+         <item><widget class="QLabel" name="sliderMaxLabel"><property name="text"><string>Max</string></property></widget></item>
+        </layout>
+       </item>
+       <item><widget class="QPushButton" name="adaptiveButton">
+        <property name="text"><string>Adaptive</string></property>
+        <property name="toolTip"><string>Auto-set optimal display point count</string></property>
+        <property name="cursor"><cursorShape>PointingHandCursor</cursorShape></property>
+       </widget></item>
+       <item><widget class="QLabel" name="vramLabel"><property name="text"><string>VRAM: --</string></property></widget></item>
+       <item><spacer name="verticalSpacer"><property name="orientation"><enum>Qt::Vertical</enum></property></spacer></item>
+      </layout>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>PointCloudViewerWidget</class>
+   <extends>QWidget</extends>
+   <header>ui/PointCloudViewerWidget.h</header>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections/>
+</ui>
